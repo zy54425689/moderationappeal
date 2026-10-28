@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ModerationAppeal — Bans Reviewed On-chain</title>
+<style>
+  :root{
+    --bg:#100d08; --panel:#1a1510; --panel2:#221a12; --line:#3a2d1e;
+    --ink:#f3e9d8; --dim:#a08b6d; --amber:#f0a730; --amber2:#ffc761;
+    --ok:#5fbf7f; --bad:#e8613f; --warn:#e0b03a;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:15px/1.6 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+  a{color:var(--amber2)}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 20px 80px}
+  header{border-bottom:1px solid var(--line);padding:16px 0;margin-bottom:26px;
+    display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap}
+  .mark{width:38px;height:38px;border-radius:9px;background:linear-gradient(135deg,var(--amber),#b4761a);
+    display:grid;place-items:center;font-weight:800;color:#1a1208;font-size:19px}
+  h1{font-size:20px;margin:0;letter-spacing:-.2px}
+  .tag{color:var(--dim);font-size:11px;letter-spacing:.09em;text-transform:uppercase;margin-top:2px}
+  .wallet{display:flex;align-items:center;gap:10px}
+  .pill{background:var(--panel);border:1px solid var(--line);border-radius:999px;
+    padding:6px 13px;font-size:12px;color:var(--dim);display:flex;align-items:center;gap:7px}
+  .dot{width:7px;height:7px;border-radius:50%;background:#5a4a35}
+  .dot.on{background:var(--ok);box-shadow:0 0 8px var(--ok)}
+  button{background:var(--panel2);color:var(--ink);border:1px solid var(--line);
+    border-radius:8px;padding:9px 15px;font:inherit;font-size:13px;cursor:pointer;transition:.15s}
+  button:hover:not(:disabled){border-color:var(--amber);color:var(--amber2)}
+  button:disabled{opacity:.42;cursor:not-allowed}
+  button.solid{background:linear-gradient(135deg,var(--amber),#c8861d);color:#1a1208;
+    border:0;font-weight:650}
+  button.solid:hover:not(:disabled){filter:brightness(1.1);color:#1a1208}
+  button.lime{background:#1e3326;border-color:#2f5a3d;color:#8fe0a8}
+  h2{font-size:24px;line-height:1.3;margin:0 0 14px;letter-spacing:-.3px}
+  h3{font-size:13px;text-transform:uppercase;letter-spacing:.1em;color:var(--amber);
+    margin:30px 0 12px;font-weight:650}
+  h3 span{color:var(--dim);text-transform:none;letter-spacing:0;font-weight:400}
+  h4{font-size:14px;margin:0 0 14px;font-weight:600}
+  h4 span{color:var(--dim);font-weight:400;font-size:12px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  label{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.07em;
+    color:var(--dim);margin-bottom:5px}
+  input,select,textarea{width:100%;background:var(--bg);border:1px solid var(--line);
+    border-radius:7px;padding:9px 11px;color:var(--ink);font:inherit;font-size:13px}
+  input:focus,select:focus,textarea:focus{outline:0;border-color:var(--amber)}
+  .msg{font-size:12px;margin-top:10px;min-height:16px;color:var(--dim);word-break:break-word}
+  .msg.ok{color:var(--ok)} .msg.err{color:var(--bad)} .msg.info{color:var(--amber2)}
+  .list{display:grid;gap:9px}
+  .item{background:var(--panel);border:1px solid var(--line);border-radius:10px;
+    padding:12px 14px;display:flex;justify-content:space-between;align-items:center;
+    gap:12px;cursor:pointer;transition:.15s}
+  .item:hover{border-color:var(--amber);background:var(--panel2)}
+  .badge{font-size:10.5px;padding:3px 9px;border-radius:999px;border:1px solid var(--line);
+    color:var(--dim);white-space:nowrap}
+  .b0{color:var(--amber2);border-color:#6b5220}
+  .b1{color:var(--ok);border-color:#2f5a3d}
+  .b2{color:var(--bad);border-color:#6b2a1c}
+  .b3{color:#7fa8cf;border-color:#2a4460}
+  .b4{color:var(--warn);border-color:#6b5220}
+  .b5{color:#9b8a72;border-color:#4a3d2c}
+  .detail{display:none;margin-top:18px}
+  .detail.show{display:block}
+  .det{background:var(--panel);border:1px solid var(--amber);border-radius:12px;padding:18px}
+  .hd{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;margin-bottom:14px}
+  .lbl{font-size:11px;text-transform:uppercase;letter-spacing:.09em;color:var(--dim)}
+  .nums{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:14px 0}
+  .nums div{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:9px 11px;
+    font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--dim)}
+  .nums b{display:block;font-size:14px;color:var(--ink);text-transform:none;letter-spacing:0;
+    margin-top:3px;word-break:break-all}
+  .nums b.t{color:var(--amber2)}
+  .bar{height:5px;background:var(--bg);border-radius:999px;overflow:hidden;margin:10px 0 14px}
+  .bar i{display:block;height:100%;background:linear-gradient(90deg,var(--amber),var(--amber2))}
+  .crit{font-size:12.5px;color:var(--dim);margin:7px 0;word-break:break-word}
+  .acts{display:flex;gap:9px;margin-top:16px;flex-wrap:wrap}
+  .steps{margin:0;padding-left:20px;color:var(--dim);font-size:13px}
+  .steps li{margin-bottom:9px}
+  .steps b{color:var(--ink)}
+  footer{margin-top:44px;padding-top:18px;border-top:1px solid var(--line);
+    font-size:12px;color:var(--dim);display:flex;gap:18px;flex-wrap:wrap}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div style="display:flex;align-items:center;gap:13px">
+      <div class="mark">M</div>
+      <div>
+        <h1>ModerationAppeal</h1>
+        <div class="tag">BANS REVIEWED ON-CHAIN · BRADBURY · build 08-02-appeal</div>
+      </div>
+    </div>
+    <div class="wallet">
+      <span class="pill"><span class="dot" id="netDot"></span> <span id="netLabel">not connected</span></span>
+      <button id="connectBtn">Connect wallet</button>
+    </div>
+  </header>
+
+  <h2>A ban is a decision with no appeal. This gives the appeal a verdict.</h2>
+  <p style="color:var(--dim);margin:0 0 6px;max-width:760px">
+    A platform funds a compensation pool. A banned user files an appeal bound to the platform, the
+    content URL and the stated ban reason, with a stake behind it. An on-chain jury fetches the
+    content and rules whether the reason actually matches it: a wrong ban pays compensation from the
+    pool and returns the stake, a justified ban forfeits the stake into the pool so hopeless appeals
+    cost money. One appeal per decision, so the same ban cannot be farmed twice.
+  </p>
+
+  <h3>Appeals <span>· loading…</span></h3>
+  <div class="row" style="grid-template-columns:1fr auto;margin-bottom:14px">
+    <div style="display:flex;gap:9px">
+      <input id="jumpId" placeholder="appeal #" style="max-width:130px" />
+      <button id="openBtn">Open</button>
+      <button id="refreshBtn">Refresh</button>
+    </div>
+    <div></div>
+  </div>
+  <div class="list" id="list"></div>
+
+  <div class="detail" id="detail">
+    <div class="det">
+      <div class="hd">
+        <div><span class="lbl">APPEAL</span><h4 id="dTitle" style="font-size:17px">—</h4></div>
+        <span class="badge b0" id="dState">—</span>
+      </div>
+      <div class="nums" id="dNums"></div>
+      <div class="bar"><i id="dBar" style="width:0%"></i></div>
+      <div class="crit" id="dScope"></div>
+      <div class="crit" id="dVerdict"></div>
+      <div class="acts">
+        <button class="solid" id="dJudgeBtn">Ask the jury</button>
+        <button class="lime" id="dSettleBtn">Settle</button>
+        <button id="dActivateBtn" style="display:none">Activate (pool can cover it now)</button>
+        <button id="dReclaimBtn" style="display:none">Reclaim my stake</button>
+      </div>
+      <div class="msg" id="dMsg"></div>
+    </div>
+  </div>
+
+  <h3>File an appeal <span>· one per decision · stake required</span></h3>
+  <div class="card">
+    <h4>State what was banned and why <span>· compensation if the ban was wrong, stake forfeited if it was right</span></h4>
+    <div class="row">
+      <div><label>PLATFORM ID</label><input id="fPlatform" placeholder="chirper" /></div>
+      <div><label>CONTENT URL</label><input id="fUrl" placeholder="https://…" /></div>
+    </div>
+    <div class="row" style="margin-top:10px">
+      <div><label>STATED BAN REASON</label><input id="fReason" placeholder="harassment" /></div>
+      <div><label>DECISION DIGEST (hash of the notice)</label><input id="fDigest" placeholder="sha256 of the ban notice" /></div>
+    </div>
+    <div class="row" style="margin-top:10px">
+      <div><label>COMPENSATION ASKED (GEN)</label><input id="fComp" type="number" step="0.01" placeholder="0.3" /></div>
+      <div><label>STAKE (GEN) <span style="opacity:.6">0.01–10</span></label><input id="fStake" type="number" step="0.01" placeholder="0.1" /></div>
+    </div>
+    <div class="row" style="margin-top:10px;grid-template-columns:auto 1fr">
+      <div><button class="solid" id="submitBtn">file_appeal</button></div>
+      <div></div>
+    </div>
+    <div class="msg" id="subMsg"></div>
+  </div>
+
+  <h3>Platform side</h3>
+  <div class="card">
+    <h4>Fund the compensation pool <span>· anyone can top it up</span></h4>
+    <div class="row" style="grid-template-columns:1fr auto">
+      <div><label>AMOUNT (GEN)</label><input id="fFund" type="number" step="0.01" placeholder="0.5" /></div>
+      <div style="display:flex;align-items:flex-end"><button class="solid" id="fundBtn">fund_compensation_pool</button></div>
+    </div>
+    <div class="msg" id="fundMsg"></div>
+  </div>
+
+  <div class="card" style="margin-top:14px">
+    <h4>Withdraw <span>· admin only · committed compensation is protected</span></h4>
+    <div class="row" style="grid-template-columns:1fr auto">
+      <div><label>AMOUNT (GEN)</label><input id="fWdraw" type="number" step="0.01" placeholder="0.1" /></div>
+      <div style="display:flex;align-items:flex-end"><button id="wdrawBtn">withdraw_pool</button></div>
+    </div>
+    <div class="msg" id="wdMsg"></div>
+  </div>
+
+  <h3>How it works</h3>
+  <div class="card">
+    <ol class="steps">
+      <li><b>fund_compensation_pool</b> (payable) — the platform puts GEN in the pool that pays for wrong bans.</li>
+      <li><b>file_appeal</b> (payable) — the appeal is bound to a <b>platform</b>, a <b>content URL</b> and the <b>stated ban reason</b>, and locked to a <b>decision digest</b>. Stake 0.01–10 GEN, compensation 0.001–100 GEN and never more than 100x the stake. The same decision can only be appealed once.</li>
+      <li><b>judge_appeal</b> — the jury fetches the content on-chain and rules whether the stated reason actually matches it. An overturn is booked as <b>committed</b>, which the platform can no longer withdraw; if the pool cannot cover it the appeal becomes <b>UNFUNDED</b>.</li>
+      <li><b>settle_appeal</b> — exactly once: an overturned ban pays the compensation and returns the stake; a justified ban forfeits the stake into the pool.</li>
+      <li><b>activate_unfunded</b> — after a top-up, an UNFUNDED overturn can be promoted to payable by anyone.</li>
+      <li><b>reclaim_stake</b> — the appellant always gets out: on demand when the pool could not pay, or once an appeal has sat unjudged past the 7-day window. Reclaiming voids the claim.</li>
+      <li><b>withdraw_pool</b> — the platform takes forfeited stakes and only the <i>uncommitted</i> pool. Compensation already owed cannot be withdrawn.</li>
+    </ol>
+  </div>
+
+  <footer id="footLinks"></footer>
+</div>
+
+<script type="module">
+import { createClient } from "https://esm.sh/genlayer-js@1.1.8";
+import { testnetBradbury } from "https://esm.sh/genlayer-js@1.1.8/chains";
+
+// ------------------------------------------------------------------------ config
+const ADDR = "0x0000000000000000000000000000000000000000";
+const EXPLORER = "https://explorer-bradbury.genlayer.com/address/" + ADDR;
+const RSTATE = ["FILED", "OVERTURNED", "UPHELD", "SETTLED", "UNFUNDED", "WITHDRAWN"];
+const $ = (id) => document.getElementById(id);
+let usingLocalKey = false;
+const readClient = createClient({ chain: testnetBradbury });
+let writeClient = null, myAddr = null, selected = null, appeals = [];
+
+// ------------------------------------------------------------------------ helpers
+const short = (a) => (a ? a.slice(0, 8) + "…" + a.slice(-6) : "—");
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) =>
+  ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const eth = (wei) => {
+  const v = BigInt(wei ?? 0);
+  const whole = v / 10n ** 18n, frac = (v % 10n ** 18n).toString().padStart(18, "0");
+  const trimmed = frac.replace(/0+$/, "");
+  return trimmed ? `${whole}.${trimmed.slice(0, 4)}` : `${whole}`;
+};
+const gen = (g) => {
+  const s = String(g ?? "").trim();
+  if (!s) return 0n;
+  const [w, f = ""] = s.split(".");
+  return BigInt(w || "0") * 10n ** 18n + BigInt((f + "0".repeat(18)).slice(0, 18) || "0");
+};
+function msg(el, text, cls = "") {
+  if (!el) return;
+  el.textContent = text;
+  el.className = "msg" + (cls ? " " + cls : "");
+}
+function walletErr(e) {
+  const c = e && (e.code !== undefined ? e.code : (e.cause && e.cause.code));
+  if (c === 4001) return "You rejected the request in your wallet.";
+  if (c === -32002) return "A wallet request is already pending — open your wallet and confirm it.";
+  if (c === 4902) return "Bradbury is not configured in your wallet.";
+  if (c === 4100) return "Wallet says this account/method is not authorised (4100). Reconnect, and make sure the active account holds GEN.";
+  const base = (e && (e.message || String(e))) || "Unknown wallet error";
+  return (c !== undefined && c !== null ? `[${c}] ` : "") + base;
+}
+
+// ------------------------------------------------------------------------ wallet
+$("connectBtn").addEventListener("click", async () => {
+  // Pick whichever EIP-1193 wallet is present. With several extensions installed the SDK's own
+  // `config.provider || window.ethereum` fallback can land on the wrong one and answer 4100.
+  const cands = [
+    { name: "OKX Wallet", p: window.okxwallet },
+    { name: "MetaMask", p: window.ethereum && window.ethereum.isMetaMask ? window.ethereum : null },
+    { name: "Rabby", p: window.ethereum && window.ethereum.isRabby ? window.ethereum : null },
+    { name: "injected", p: window.ethereum },
+  ];
+  const found = cands.find((c) => c.p && c.p.request);
+  if (!found) {
+    msg($("subMsg"), "No wallet found. Install OKX Wallet or MetaMask, and open this page over https — wallets do not inject into file:// pages.", "err");
+    return;
+  }
+  const wname = found.name;
+  const prov = found.p;
+  $("connectBtn").textContent = "Connecting…";
+  try {
+    const a = await prov.request({ method: "eth_requestAccounts" });
+    if (!a || !a.length) throw new Error("Your wallet returned no account.");
+    myAddr = a[0];
+
+    try {
+      await prov.request({ method: "wallet_switchEthereumChain", params: [{ chainId: "0x107d" }] });
+    } catch (e) {
+      if (e && e.code === 4902) {
+        await prov.request({ method: "wallet_addEthereumChain", params: [{
+          chainId: "0x107d", chainName: "GenLayer Bradbury Testnet",
+          nativeCurrency: { name: "GEN", symbol: "GEN", decimals: 18 },
+          rpcUrls: ["https://rpc-bradbury.genlayer.com"],
+          blockExplorerUrls: ["https://explorer-bradbury.genlayer.com"],
+        }] });
+      } else { throw e; }
+    }
+    const cid = await prov.request({ method: "eth_chainId" });
+    if (cid !== "0x107d") {
+      msg($("subMsg"), `Wallet is on chain ${parseInt(cid, 16)} but this app needs Bradbury (4221). Switch it in the wallet and connect again.`, "err");
+      $("connectBtn").textContent = "Connect wallet";
+      return;
+    }
+
+    // Pinned provider: wrap it so the SDK has nothing to fall back to.
+    const forced = { request: (args) => prov.request(args) };
+    if (prov.on) forced.on = (...x) => prov.on(...x);
+    if (prov.removeListener) forced.removeListener = (...x) => prov.removeListener(...x);
+
+    usingLocalKey = false;
+    writeClient = createClient({ chain: testnetBradbury, provider: forced });
+
+    $("netLabel").textContent = short(myAddr);
+    $("netDot").classList.add("on");
+    $("connectBtn").textContent = "Connected";
+
+    let bal = "";
+    try {
+      const raw = await readClient.getBalance({ address: myAddr });
+      if (raw !== null && raw !== undefined) bal = " · " + (Number(raw) / 1e18).toFixed(4) + " GEN";
+    } catch (e) { /* ignore */ }
+    msg($("subMsg"), wname + " connected on Bradbury · " + short(myAddr) + bal, "ok");
+
+    if (prov.on) {
+      prov.on("accountsChanged", (accs) => {
+        myAddr = accs && accs.length ? accs[0] : null;
+        writeClient = null;
+        $("connectBtn").textContent = myAddr ? "Connected" : "Connect wallet";
+        $("netLabel").textContent = myAddr ? short(myAddr) : "not connected";
+        if (!myAddr) $("netDot").classList.remove("on");
+      });
+      prov.on("chainChanged", () => window.location.reload());
+    }
+    await loadAll();
+  } catch (e) {
+    $("connectBtn").textContent = "Connect wallet";
+    msg($("subMsg"), "Connect failed: " + walletErr(e), "err");
+  }
+});
+
+// ------------------------------------------------------------------------ writes
+async function waitFinal(hash, el, label) {
+  for (let i = 0; i < 80; i++) {
+    await new Promise((r) => setTimeout(r, 15000));
+    let tx = null;
+    try { tx = await readClient.getTransaction({ hash }); } catch (e) { continue; }
+    if (!tx) continue;
+    const st = String(tx.statusName || tx.status || "");
+    if (st === "FINALIZED" || st === "ACCEPTED") {
+      const res = String(tx.txExecutionResultName || "");
+      if (res === "FINISHED_WITH_RETURN") {
+        msg(el, `${label} confirmed · ${short(hash)}`, "ok");
+        await loadAll();
+        return true;
+      }
+      msg(el, `${label} executed but returned ${res || "an error"} · ${short(hash)} — the contract refused it.`, "err");
+      return false;
+    }
+    if (st === "UNDETERMINED" || st === "LEADER_TIMEOUT") {
+      msg(el, `${label} could not reach consensus. It may still land — check the explorer. ${short(hash)}`, "err");
+      return false;
+    }
+  }
+  msg(el, `${label} is taking long. Hash ${short(hash)} — check the explorer before retrying.`, "info");
+  return false;
+}
+
+async function write(fn, args, el, label, value = 0n) {
+  if (!writeClient) return msg(el, "Connect your wallet first.", "err");
+  try {
+    msg(el, `${label} → confirm in your wallet…`, "info");
+    const call = { address: ADDR, functionName: fn, args, value };
+    if (!usingLocalKey && myAddr) call.account = { address: myAddr, type: "json-rpc" };
+    const hash = await writeClient.writeContract(call);
+    msg(el, `${label} submitted (${short(hash)}) — waiting for finalization…`, "info");
+    await waitFinal(hash, el, label);
+  } catch (e) {
+    msg(el, `${label} failed: ` + walletErr(e).slice(0, 220), "err");
+  }
+}
+
+// ------------------------------------------------------------------------ reads
+async function loadAll() {
+  try {
+    const p = await readClient.readContract({ address: ADDR, functionName: "get_pools", args: [] });
+    const count = Number(p.appeal_count);
+    appeals = [];
+    for (let i = 1; i <= count; i++) {
+      appeals.push(await readClient.readContract({ address: ADDR, functionName: "get_appeal", args: [BigInt(i)] }));
+    }
+    renderList();
+    document.querySelector("h3 span").textContent =
+      `· ${count} filed · pool ${eth(p.compensation_pool)} GEN · committed ${eth(p.committed)} GEN`;
+  } catch (e) {
+    document.querySelector("h3 span").textContent = "· read failed";
+  }
+}
+
+function renderList() {
+  const el = $("list");
+  if (!appeals.length) { el.innerHTML = '<div class="item" style="cursor:default;color:var(--dim)">No appeals filed yet.</div>'; return; }
+  el.innerHTML = appeals.map((a) => `
+    <div class="item" data-id="${a.id}">
+      <div style="min-width:0">
+        <div style="font-size:13.5px">#${a.id} · ${esc(a.platform)} — ${esc(a.ban_reason)}</div>
+        <div style="font-size:11.5px;color:var(--dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(a.content_url)}</div>
+      </div>
+      <span class="badge b${Number(a.state)}">${RSTATE[Number(a.state)] ?? a.state}${a.stake_settled ? " · SETTLED" : ""}</span>
+    </div>`).join("");
+  el.querySelectorAll(".item[data-id]").forEach((n) =>
+    n.addEventListener("click", () => openAppeal(Number(n.dataset.id))));
+}
+
+async function openAppeal(id) {
+  const a = appeals.find((x) => Number(x.id) === id);
+  if (!a) return;
+  selected = id;
+  const st = Number(a.state);
+  $("detail").classList.add("show");
+  $("dTitle").textContent = `#${a.id} · ${a.platform} — ${a.ban_reason}`;
+  $("dState").className = "badge b" + st;
+  $("dState").textContent = `${RSTATE[st] ?? st}${a.stake_settled ? " · STAKE SETTLED" : " · STAKE HELD"}`;
+  $("dNums").innerHTML =
+    `<div>APPELLANT<b>${short(a.appellant)}</b></div>` +
+    `<div>COMPENSATION<b class="t">${eth(a.requested_compensation)} GEN</b></div>` +
+    `<div>STAKE<b>${eth(a.stake)} GEN</b></div>` +
+    `<div>SCORE<b>${String(a.score)}/100</b></div>`;
+  $("dBar").style.width = Math.min(100, Number(a.score)) + "%";
+  $("dScope").innerHTML =
+    `Content: <a href="${esc(a.content_url)}" target="_blank" rel="noopener">${esc(a.content_url)}</a>` +
+    `<br>Decision digest: <code>${esc(String(a.evidence_digest || "").slice(0, 24))}…</code>`;
+  $("dVerdict").innerHTML = a.verdict_reason
+    ? `Jury: ${esc(a.verdict_reason)}${a.confidence ? ` (confidence: ${esc(a.confidence)})` : ""}`
+    : `Not judged yet.`;
+  $("dJudgeBtn").disabled = st !== 0;
+  $("dSettleBtn").disabled = st === 0 || st === 3 || st === 5 || a.stake_settled;
+  $("dActivateBtn").style.display = st === 4 ? "" : "none";
+  $("dReclaimBtn").style.display = (st === 4 || (st === 0 && a.overdue)) ? "" : "none";
+  renderList();
+}
+
+// ------------------------------------------------------------------------ actions
+$("submitBtn").addEventListener("click", () => {
+  const pf = $("fPlatform").value.trim(), u = $("fUrl").value.trim(),
+        rs = $("fReason").value.trim(), dg = $("fDigest").value.trim(),
+        cp = $("fComp").value, st = $("fStake").value;
+  if (!pf || !u || !rs || !dg || !cp || !st)
+    return msg($("subMsg"), "Fill in platform, content URL, ban reason, decision digest, compensation and stake.", "err");
+  if (dg.length < 16) return msg($("subMsg"), "The decision digest must be at least 16 characters.", "err");
+  const stakeGen = Number(st), compGen = Number(cp);
+  if (stakeGen < 0.01 || stakeGen > 10)
+    return msg($("subMsg"), "The stake must be between 0.01 and 10 GEN.", "err");
+  if (compGen <= 0) return msg($("subMsg"), "The compensation must be positive.", "err");
+  if (compGen > stakeGen * 100)
+    return msg($("subMsg"), "The compensation cannot exceed 100x the stake.", "err");
+  write("file_appeal", [pf, u, rs, dg, gen(cp)], $("subMsg"), "file_appeal", gen(st));
+});
+
+$("fundBtn").addEventListener("click", () => {
+  const g = $("fFund").value;
+  if (!g) return msg($("fundMsg"), "Enter an amount.", "err");
+  write("fund_compensation_pool", [], $("fundMsg"), `fund_compensation_pool (${g} GEN)`, gen(g));
+});
+
+$("wdrawBtn").addEventListener("click", () => {
+  const g = $("fWdraw").value;
+  if (!g || !myAddr) return msg($("wdMsg"), "Connect your wallet and enter an amount.", "err");
+  write("withdraw_pool", [gen(g), myAddr], $("wdMsg"), `withdraw_pool (${g} GEN)`);
+});
+
+$("dJudgeBtn").addEventListener("click", () => { if (selected) write("judge_appeal", [BigInt(selected)], $("dMsg"), "judge_appeal (the jury fetches the content)"); });
+$("dSettleBtn").addEventListener("click", () => { if (selected) write("settle_appeal", [BigInt(selected)], $("dMsg"), "settle_appeal"); });
+$("dActivateBtn").addEventListener("click", () => { if (selected) write("activate_unfunded", [BigInt(selected)], $("dMsg"), "activate_unfunded"); });
+$("dReclaimBtn").addEventListener("click", () => { if (selected) write("reclaim_stake", [BigInt(selected)], $("dMsg"), "reclaim_stake"); });
+
+$("openBtn").addEventListener("click", () => {
+  const id = Number($("jumpId").value);
+  if (id) openAppeal(id);
+});
+$("refreshBtn").addEventListener("click", loadAll);
+
+$("footLinks").innerHTML = `<a href="${EXPLORER}" target="_blank" rel="noopener">${ADDR}</a>
+  <a href="https://github.com/zy54425689/moderationappeal" target="_blank" rel="noopener">source</a>`;
+loadAll();
+</script>
+</body>
+</html>
