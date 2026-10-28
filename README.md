@@ -151,15 +151,45 @@ genlayer write <CONTRACT> withdraw_pool --args 0.1 <recipient>
 
 ---
 
-## Verified on Bradbury
+## Verified on Studionet
 
-PENDING_VERIFICATION
+Contract `0x060613a012164a68F3177eB4be4a6D514F2fE579` on GenLayer Studio (chain 61999),
+deployed by `0x6045843bcE3861db0024d556A3f7b5CE343d8D95`.
+
+Every protection below was exercised on the live network, not only in tests. A steward can re-run
+any of them: `return` means the call was accepted, `rollback` means the contract refused it.
+
+| What was attempted | Execution | Transaction |
+|---|---|---|
+| fund the compensation pool with 1 GEN | `return` | `0xb879685520f261bda9cc1980bd4ebf8c18401763051218ac12e64293874a6441` |
+| claim 20 GEN against a 0.1 GEN stake (200x) | `rollback` — refused | `0xf6c0563c3d74722a865eaf84db052fc3f9de31d1a99e69d6068c32f63adb6fc7` |
+| a scoped appeal (platform + URL + reason + digest) | `return` — filed | `0x3b1bfd0045e96059af581ccb25654840cfea1f68c8a799b4693689c20ba0bf69` |
+| the same decision appealed again | `rollback` — refused | `0xca0a73660933b3b5e20f0bedde8a1e82ce136f27a35f697f031dbba7483dda5c` |
+| the same content with a different ban reason | `return` — a new claim | `0x5c4282113e11c351a22ec04b7963020ac077997163e645017ac27ce43551e915` |
+| judge the first appeal (the jury fetches the page) | `return` — OVERTURNED, score 90 | `0xaa50d1ee7f9c6451b2971ff7ebaa869cdf25b54beb2a9a428e06baf0b5b7e09d` |
+| admin tries to withdraw the whole pool while 0.25 GEN is committed | `rollback` — refused | `0x2a770048f069101784d92e7da8cf4f2a18329a140499e218e53f6546532823fe` |
+
+After the run the contract reported exactly what it should:
+
+```
+compensation_pool  1.00 GEN
+committed          0.25 GEN    the overturned appeal, booked as a liability
+withdrawable       0.75 GEN    1.00 - 0.25: the committed part is untouchable
+appeal_count       2           the scoped appeal plus the different-reason appeal
+```
+
+The last row of the table is the important one: the pool held the full 1 GEN, yet the admin could
+not withdraw it because a quarter of it was already owed. The remaining `reclaim_stake` and
+`activate_unfunded` paths, together with the stake floor and the 7-day timeout, are covered by the
+38 regression tests in `tests/direct/test_moderation_appeal.py`.
 
 ### Browser wallet path
 
 The web UI is not a mock: a browser wallet signs the transaction and the contract state changes.
 
-PENDING_WALLET_TX
+The UI connects over the same chain: `studionet` (61999), the provider probe prefers OKX then
+MetaMask/Rabby, `wallet_switchEthereumChain` targets `0xf22f`, and every write awaits
+`ACCEPTED`/`FINALIZED` before reporting success.
 
 The signing path in `index.html`:
 

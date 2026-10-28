@@ -91,7 +91,7 @@
       <div class="mark">M</div>
       <div>
         <h1>ModerationAppeal</h1>
-        <div class="tag">BANS REVIEWED ON-CHAIN · BRADBURY · build 08-02-appeal</div>
+        <div class="tag">BANS REVIEWED ON-CHAIN · STUDIONET · build 08-27</div>
       </div>
     </div>
     <div class="wallet">
@@ -199,15 +199,15 @@
 
 <script type="module">
 import { createClient } from "https://esm.sh/genlayer-js@1.1.8";
-import { testnetBradbury } from "https://esm.sh/genlayer-js@1.1.8/chains";
+import { studionet } from "https://esm.sh/genlayer-js@1.1.8/chains";
 
 // ------------------------------------------------------------------------ config
-const ADDR = "0x0000000000000000000000000000000000000000";
-const EXPLORER = "https://explorer-bradbury.genlayer.com/address/" + ADDR;
+const ADDR = "0x060613a012164a68F3177eB4be4a6D514F2fE579";
+const EXPLORER = "https://explorer-studio.genlayer.com/address/" + ADDR;
 const RSTATE = ["FILED", "OVERTURNED", "UPHELD", "SETTLED", "UNFUNDED", "WITHDRAWN"];
 const $ = (id) => document.getElementById(id);
 let usingLocalKey = false;
-const readClient = createClient({ chain: testnetBradbury });
+const readClient = createClient({ chain: studionet });
 let writeClient = null, myAddr = null, selected = null, appeals = [];
 
 // ------------------------------------------------------------------------ helpers
@@ -235,7 +235,7 @@ function walletErr(e) {
   const c = e && (e.code !== undefined ? e.code : (e.cause && e.cause.code));
   if (c === 4001) return "You rejected the request in your wallet.";
   if (c === -32002) return "A wallet request is already pending — open your wallet and confirm it.";
-  if (c === 4902) return "Bradbury is not configured in your wallet.";
+  if (c === 4902) return "Studionet is not configured in your wallet.";
   if (c === 4100) return "Wallet says this account/method is not authorised (4100). Reconnect, and make sure the active account holds GEN.";
   const base = (e && (e.message || String(e))) || "Unknown wallet error";
   return (c !== undefined && c !== null ? `[${c}] ` : "") + base;
@@ -265,20 +265,20 @@ $("connectBtn").addEventListener("click", async () => {
     myAddr = a[0];
 
     try {
-      await prov.request({ method: "wallet_switchEthereumChain", params: [{ chainId: "0x107d" }] });
+      await prov.request({ method: "wallet_switchEthereumChain", params: [{ chainId: "0xf22f" }] });
     } catch (e) {
       if (e && e.code === 4902) {
         await prov.request({ method: "wallet_addEthereumChain", params: [{
-          chainId: "0x107d", chainName: "GenLayer Bradbury Testnet",
+          chainId: "0xf22f", chainName: "GenLayer Studio",
           nativeCurrency: { name: "GEN", symbol: "GEN", decimals: 18 },
-          rpcUrls: ["https://rpc-bradbury.genlayer.com"],
+          rpcUrls: ["https://studio.genlayer.com/api"],
           blockExplorerUrls: ["https://explorer-bradbury.genlayer.com"],
         }] });
       } else { throw e; }
     }
     const cid = await prov.request({ method: "eth_chainId" });
-    if (cid !== "0x107d") {
-      msg($("subMsg"), `Wallet is on chain ${parseInt(cid, 16)} but this app needs Bradbury (4221). Switch it in the wallet and connect again.`, "err");
+    if (cid !== "0xf22f") {
+      msg($("subMsg"), `Wallet is on chain ${parseInt(cid, 16)} but this app needs Studionet (61999). Switch it in the wallet and connect again.`, "err");
       $("connectBtn").textContent = "Connect wallet";
       return;
     }
@@ -289,7 +289,7 @@ $("connectBtn").addEventListener("click", async () => {
     if (prov.removeListener) forced.removeListener = (...x) => prov.removeListener(...x);
 
     usingLocalKey = false;
-    writeClient = createClient({ chain: testnetBradbury, provider: forced });
+    writeClient = createClient({ chain: studionet, provider: forced });
 
     $("netLabel").textContent = short(myAddr);
     $("netDot").classList.add("on");
