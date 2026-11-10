@@ -91,7 +91,7 @@
       <div class="mark">M</div>
       <div>
         <h1>ModerationAppeal</h1>
-        <div class="tag">BANS REVIEWED ON-CHAIN · STUDIONET · build 08-27</div>
+        <div class="tag">BANS REVIEWED ON-CHAIN · STUDIONET · build 10-27-decisions</div>
       </div>
     </div>
     <div class="wallet">
@@ -102,11 +102,12 @@
 
   <h2>A ban is a decision with no appeal. This gives the appeal a verdict.</h2>
   <p style="color:var(--dim);margin:0 0 6px;max-width:760px">
-    A platform funds a compensation pool. A banned user files an appeal bound to the platform, the
-    content URL and the stated ban reason, with a stake behind it. An on-chain jury fetches the
-    content and rules whether the reason actually matches it: a wrong ban pays compensation from the
-    pool and returns the stake, a justified ban forfeits the stake into the pool so hopeless appeals
-    cost money. One appeal per decision, so the same ban cannot be farmed twice.
+    A platform registers and becomes its operator, then commits each moderation decision on chain:
+    the platform id, a content hash, the stated ban reason, the banned account and a digest of the
+    notice. Only the account named in that decision can appeal it, once. An on-chain jury fetches
+    the content and rules whether the recorded reason matches it, and every validator re-reads the
+    page independently instead of trusting the leader. A wrong ban pays compensation from that
+    platform's own pool and returns the stake; a justified ban forfeits the stake into it.
   </p>
 
   <h3>Appeals <span>· loading…</span></h3>
@@ -140,41 +141,69 @@
     </div>
   </div>
 
-  <h3>File an appeal <span>· one per decision · stake required</span></h3>
+  <h3>File an appeal <span>&middot; only the banned account &middot; one per decision</span></h3>
   <div class="card">
-    <h4>State what was banned and why <span>· compensation if the ban was wrong, stake forfeited if it was right</span></h4>
+    <h4>Appeal a decision the platform has already committed <span>&middot; compensation if the ban was wrong</span></h4>
     <div class="row">
-      <div><label>PLATFORM ID</label><input id="fPlatform" placeholder="chirper" /></div>
-      <div><label>CONTENT URL</label><input id="fUrl" placeholder="https://…" /></div>
+      <div><label>DECISION ID</label><input id="fDecision" type="number" step="1" placeholder="1" /></div>
+      <div><label>CONTENT URL</label><input id="fUrl" placeholder="https://..." /></div>
     </div>
     <div class="row" style="margin-top:10px">
-      <div><label>STATED BAN REASON</label><input id="fReason" placeholder="harassment" /></div>
-      <div><label>DECISION DIGEST (hash of the notice)</label><input id="fDigest" placeholder="sha256 of the ban notice" /></div>
-    </div>
-    <div class="row" style="margin-top:10px">
+      <div><label>NOTICE DIGEST</label><input id="fDigest" placeholder="sha256 of the ban notice" /></div>
       <div><label>COMPENSATION ASKED (GEN)</label><input id="fComp" type="number" step="0.01" placeholder="0.3" /></div>
-      <div><label>STAKE (GEN) <span style="opacity:.6">0.01–10</span></label><input id="fStake" type="number" step="0.01" placeholder="0.1" /></div>
     </div>
-    <div class="row" style="margin-top:10px;grid-template-columns:auto 1fr">
-      <div><button class="solid" id="submitBtn">file_appeal</button></div>
-      <div></div>
+    <div class="row" style="margin-top:10px">
+      <div><label>STAKE (GEN) <span style="opacity:.6">0.01-10</span></label><input id="fStake" type="number" step="0.01" placeholder="0.1" /></div>
+      <div style="display:flex;align-items:flex-end"><button class="solid" id="submitBtn">file_appeal</button></div>
     </div>
     <div class="msg" id="subMsg"></div>
   </div>
 
+  <h3>Platform registry <span>&middot; the operator commits decisions on chain</span></h3>
+  <div class="card">
+    <h4>Register a platform <span>&middot; the caller becomes its operator</span></h4>
+    <div class="row" style="grid-template-columns:1fr auto">
+      <div><label>PLATFORM ID</label><input id="fPlatId" placeholder="chirper" /></div>
+      <div style="display:flex;align-items:flex-end"><button id="regBtn">register_platform</button></div>
+    </div>
+    <div class="msg" id="regMsg"></div>
+  </div>
+
+  <div class="card" style="margin-top:14px">
+    <h4>Record a moderation decision <span>&middot; operator only &middot; this is the authenticated evidence</span></h4>
+    <div class="row">
+      <div><label>PLATFORM ID</label><input id="fDPlat" placeholder="chirper" /></div>
+      <div><label>CONTENT HASH</label><input id="fHash" placeholder="sha256 of the banned content" /></div>
+    </div>
+    <div class="row" style="margin-top:10px">
+      <div><label>BAN REASON</label><input id="fReason" placeholder="harassment" /></div>
+      <div><label>BANNED ACCOUNT (appellant)</label><input id="fAppellant" placeholder="0x..." /></div>
+    </div>
+    <div class="row" style="margin-top:10px">
+      <div><label>NOTICE DIGEST</label><input id="fDDigest" placeholder="sha256 of the notice" /></div>
+      <div style="display:flex;align-items:flex-end"><button class="solid" id="decBtn">record_decision</button></div>
+    </div>
+    <div class="msg" id="decMsg"></div>
+  </div>
+
+  <h3>Platform side</h3>
+</div>
+
   <h3>Platform side</h3>
   <div class="card">
     <h4>Fund the compensation pool <span>· anyone can top it up</span></h4>
-    <div class="row" style="grid-template-columns:1fr auto">
+    <div class="row" style="grid-template-columns:1fr 1fr auto">
+      <div><label>PLATFORM ID</label><input id="fFundPlat" placeholder="chirper" /></div>
       <div><label>AMOUNT (GEN)</label><input id="fFund" type="number" step="0.01" placeholder="0.5" /></div>
-      <div style="display:flex;align-items:flex-end"><button class="solid" id="fundBtn">fund_compensation_pool</button></div>
+      <div style="display:flex;align-items:flex-end"><button class="solid" id="fundBtn">fund_platform_pool</button></div>
     </div>
     <div class="msg" id="fundMsg"></div>
   </div>
 
   <div class="card" style="margin-top:14px">
     <h4>Withdraw <span>· admin only · committed compensation is protected</span></h4>
-    <div class="row" style="grid-template-columns:1fr auto">
+    <div class="row" style="grid-template-columns:1fr 1fr auto">
+      <div><label>PLATFORM ID</label><input id="fWdrawPlat" placeholder="chirper" /></div>
       <div><label>AMOUNT (GEN)</label><input id="fWdraw" type="number" step="0.01" placeholder="0.1" /></div>
       <div style="display:flex;align-items:flex-end"><button id="wdrawBtn">withdraw_pool</button></div>
     </div>
@@ -202,7 +231,7 @@ import { createClient } from "https://esm.sh/genlayer-js@1.1.8";
 import { studionet } from "https://esm.sh/genlayer-js@1.1.8/chains";
 
 // ------------------------------------------------------------------------ config
-const ADDR = "0x060613a012164a68F3177eB4be4a6D514F2fE579";
+const ADDR = "0x42D88d22Dc6F2dfaBF350A1a71A14F91F5210717";
 const EXPLORER = "https://explorer-studio.genlayer.com/address/" + ADDR;
 const RSTATE = ["FILED", "OVERTURNED", "UPHELD", "SETTLED", "UNFUNDED", "WITHDRAWN"];
 const $ = (id) => document.getElementById(id);
@@ -363,15 +392,19 @@ async function write(fn, args, el, label, value = 0n) {
 // ------------------------------------------------------------------------ reads
 async function loadAll() {
   try {
-    const p = await readClient.readContract({ address: ADDR, functionName: "get_pools", args: [] });
-    const count = Number(p.appeal_count);
+    const count = Number(await readClient.readContract({ address: ADDR, functionName: "get_appeal_count", args: [] }));
     appeals = [];
     for (let i = 1; i <= count; i++) {
       appeals.push(await readClient.readContract({ address: ADDR, functionName: "get_appeal", args: [BigInt(i)] }));
     }
     renderList();
-    document.querySelector("h3 span").textContent =
-      `· ${count} filed · pool ${eth(p.compensation_pool)} GEN · committed ${eth(p.committed)} GEN`;
+    let poolTxt = "";
+    const pid = ($("fFundPlat") && $("fFundPlat").value.trim()) || "chirper";
+    try {
+      const p = await readClient.readContract({ address: ADDR, functionName: "get_platform", args: [pid] });
+      poolTxt = ` · ${pid} pool ${eth(p.pool)} GEN · committed ${eth(p.committed)} GEN`;
+    } catch (e) { poolTxt = ` · ${pid} not registered`; }
+    document.querySelector("h3 span").textContent = `· ${count} filed${poolTxt}`;
   } catch (e) {
     document.querySelector("h3 span").textContent = "· read failed";
   }
@@ -422,31 +455,45 @@ async function openAppeal(id) {
 
 // ------------------------------------------------------------------------ actions
 $("submitBtn").addEventListener("click", () => {
-  const pf = $("fPlatform").value.trim(), u = $("fUrl").value.trim(),
-        rs = $("fReason").value.trim(), dg = $("fDigest").value.trim(),
-        cp = $("fComp").value, st = $("fStake").value;
-  if (!pf || !u || !rs || !dg || !cp || !st)
-    return msg($("subMsg"), "Fill in platform, content URL, ban reason, decision digest, compensation and stake.", "err");
-  if (dg.length < 16) return msg($("subMsg"), "The decision digest must be at least 16 characters.", "err");
+  const did = $("fDecision").value, u = $("fUrl").value.trim(),
+        dg = $("fDigest").value.trim(), cp = $("fComp").value, st = $("fStake").value;
+  if (!did || !u || !dg || !cp || !st)
+    return msg($("subMsg"), "Fill in decision id, content URL, notice digest, compensation and stake.", "err");
+  if (dg.length < 16) return msg($("subMsg"), "The digest must be at least 16 characters.", "err");
   const stakeGen = Number(st), compGen = Number(cp);
   if (stakeGen < 0.01 || stakeGen > 10)
     return msg($("subMsg"), "The stake must be between 0.01 and 10 GEN.", "err");
   if (compGen <= 0) return msg($("subMsg"), "The compensation must be positive.", "err");
   if (compGen > stakeGen * 100)
     return msg($("subMsg"), "The compensation cannot exceed 100x the stake.", "err");
-  write("file_appeal", [pf, u, rs, dg, gen(cp)], $("subMsg"), "file_appeal", gen(st));
+  write("file_appeal", [BigInt(did), u, dg, gen(cp)], $("subMsg"), "file_appeal", gen(st));
+});
+
+$("regBtn").addEventListener("click", () => {
+  const pid = $("fPlatId").value.trim();
+  if (!pid) return msg($("regMsg"), "Enter a platform id.", "err");
+  write("register_platform", [pid], $("regMsg"), `register_platform(${pid})`);
+});
+
+$("decBtn").addEventListener("click", () => {
+  const pid = $("fDPlat").value.trim(), h = $("fHash").value.trim(),
+        rs = $("fReason").value.trim(), ap = $("fAppellant").value.trim(),
+        dg = $("fDDigest").value.trim();
+  if (!pid || !h || !rs || !ap || !dg)
+    return msg($("decMsg"), "Fill in platform, content hash, reason, banned account and digest.", "err");
+  write("record_decision", [pid, h, rs, ap, dg], $("decMsg"), "record_decision");
 });
 
 $("fundBtn").addEventListener("click", () => {
-  const g = $("fFund").value;
-  if (!g) return msg($("fundMsg"), "Enter an amount.", "err");
-  write("fund_compensation_pool", [], $("fundMsg"), `fund_compensation_pool (${g} GEN)`, gen(g));
+  const pid = $("fFundPlat").value.trim(), g = $("fFund").value;
+  if (!pid || !g) return msg($("fundMsg"), "Enter a platform id and an amount.", "err");
+  write("fund_platform_pool", [pid], $("fundMsg"), `fund_platform_pool(${pid}, ${g} GEN)`, gen(g));
 });
 
 $("wdrawBtn").addEventListener("click", () => {
-  const g = $("fWdraw").value;
-  if (!g || !myAddr) return msg($("wdMsg"), "Connect your wallet and enter an amount.", "err");
-  write("withdraw_pool", [gen(g), myAddr], $("wdMsg"), `withdraw_pool (${g} GEN)`);
+  const pid = $("fWdrawPlat").value.trim(), g = $("fWdraw").value;
+  if (!pid || !g || !myAddr) return msg($("wdMsg"), "Connect, then enter a platform id and an amount.", "err");
+  write("withdraw_pool", [pid, gen(g), myAddr], $("wdMsg"), `withdraw_pool(${pid}, ${g} GEN)`);
 });
 
 $("dJudgeBtn").addEventListener("click", () => { if (selected) write("judge_appeal", [BigInt(selected)], $("dMsg"), "judge_appeal (the jury fetches the content)"); });

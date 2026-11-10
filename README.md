@@ -153,35 +153,55 @@ genlayer write <CONTRACT> withdraw_pool --args 0.1 <recipient>
 
 ## Verified on Studionet
 
-Contract `0x060613a012164a68F3177eB4be4a6D514F2fE579` on GenLayer Studio (chain 61999),
-deployed by `0x6045843bcE3861db0024d556A3f7b5CE343d8D95`.
+Contract `0x42D88d22Dc6F2dfaBF350A1a71A14F91F5210717` on GenLayer Studio (chain 61999),
+deployed by `0x6045843bcE3861db0024d556A3f7b5CE343d8D95`
+(`0x72da7cc8a4ba8655742bf7cab882fdeb547468189480dcfd54fd63c17cbb1d96`).
 
-Every protection below was exercised on the live network, not only in tests. A steward can re-run
-any of them: `return` means the call was accepted, `rollback` means the contract refused it.
+Every protection was exercised on the live network. `return` means the call was accepted,
+`rollback` means the contract refused it.
+
+### Decision-backed appeals and platform pools
 
 | What was attempted | Execution | Transaction |
 |---|---|---|
-| fund the compensation pool with 1 GEN | `return` | `0xb879685520f261bda9cc1980bd4ebf8c18401763051218ac12e64293874a6441` |
-| claim 20 GEN against a 0.1 GEN stake (200x) | `rollback` — refused | `0xf6c0563c3d74722a865eaf84db052fc3f9de31d1a99e69d6068c32f63adb6fc7` |
-| a scoped appeal (platform + URL + reason + digest) | `return` — filed | `0x3b1bfd0045e96059af581ccb25654840cfea1f68c8a799b4693689c20ba0bf69` |
-| the same decision appealed again | `rollback` — refused | `0xca0a73660933b3b5e20f0bedde8a1e82ce136f27a35f697f031dbba7483dda5c` |
-| the same content with a different ban reason | `return` — a new claim | `0x5c4282113e11c351a22ec04b7963020ac077997163e645017ac27ce43551e915` |
-| judge the first appeal (the jury fetches the page) | `return` — OVERTURNED, score 90 | `0xaa50d1ee7f9c6451b2971ff7ebaa869cdf25b54beb2a9a428e06baf0b5b7e09d` |
-| admin tries to withdraw the whole pool while 0.25 GEN is committed | `rollback` — refused | `0x2a770048f069101784d92e7da8cf4f2a18329a140499e218e53f6546532823fe` |
+| register the platform `chirper` | `return` | `0xd89b3e2b633fb6a53008d79da3375c1cdf0b3049ee3bbcf852c4c040f6a2e107` |
+| **wallet 2 (not the operator) records a decision** | `rollback` — refused | `0x36cd25b0de51cb2609d1557581b59f7e533e021c355ff7f2e7a3527ce2abf4b6` |
+| the operator records a real decision naming wallet 1 | `return` | `0x02ceec83420c21703cb99a1804775f76bf13d900e2960330a88188a3425de95c` |
+| fund the platform pool with 1 GEN | `return` | `0xbb800d8058f134e46ead24f01fdb27eb3198968a465b25bdb0b1692a70a51247` |
+| **wallet 2 (not the banned account) files the appeal** | `rollback` — refused | `0x9775807280f126e08fae8d673ac7301efbdb57216e0b08bab8c0793aef482c34` |
+| the banned account files the appeal | `return` | `0x4c407f47f84268434b173d095c81fd0197eee7e160818c515accd37e42778a70` |
+| judge the appeal (jury plus independent validator) | `return` — OVERTURNED, score 96 | `0x6a1f4ee4ecae765eb2b7dc2f77c3f8f52737ca13246bde4bdcf3628c3fbd21a2` |
 
-After the run the contract reported exactly what it should:
+### The equivalence rule, callable from outside
+
+`check_verdict(ban_reason, body, leader_view, unjustified, score)` is the exact rule the validator
+applies inside `judge_appeal`. Six live calls:
+
+| Case | Result |
+|---|---|
+| leader says `related`, an independent read says the page is unrelated | `false` — rejected |
+| leader overturns, but the page does contain the named material | `false` — rejected |
+| leader claims a page state that does not exist | `false` — rejected |
+| confident uphold of a page unrelated to the reason | `false` — rejected |
+| consistent overturn (unrelated page, overturn) | `true` — accepted |
+| consistent uphold (related page, uphold) | `true` — accepted |
+
+Two practical notes for anyone reproducing this: `body` must be at least `MIN_BODY_CHARS` (120)
+or it is classified as `missing`, and very long strings (about 800 characters) fail RLP encoding on
+the node, so pass a representative excerpt rather than a whole page.
+
+### What the ending state shows
 
 ```
-compensation_pool  1.00 GEN
-committed          0.25 GEN    the overturned appeal, booked as a liability
-withdrawable       0.75 GEN    1.00 - 0.25: the committed part is untouchable
-appeal_count       2           the scoped appeal plus the different-reason appeal
+chirper pool   1.00 GEN
+committed      0.25 GEN    the overturned appeal, booked as a liability
+withdrawable   0.75 GEN    the committed part cannot be withdrawn
 ```
 
-The last row of the table is the important one: the pool held the full 1 GEN, yet the admin could
-not withdraw it because a quarter of it was already owed. The remaining `reclaim_stake` and
-`activate_unfunded` paths, together with the stake floor and the 7-day timeout, are covered by the
-38 regression tests in `tests/direct/test_moderation_appeal.py`.
+`reclaim_stake`, `activate_unfunded`, the stake floor and ceiling, the 7-day timeout and the
+platform-pool isolation are covered by the 43 regression tests in
+`tests/direct/test_moderation_appeal.py`, including the adversarial cases for fabricated bans,
+unauthorised appellants, unusable digests and validator disagreement.
 
 ### Browser wallet path
 
